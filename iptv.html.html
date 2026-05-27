@@ -1,0 +1,904 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ELVIS IPTV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══ RESET ══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --red:#e81010;
+  --red2:#b50d0d;
+  --bg:#0d0d0f;
+  --bg2:#141417;
+  --bg3:#1c1c20;
+  --border:rgba(255,255,255,.08);
+  --text:#e8e8ec;
+  --muted:rgba(255,255,255,.45);
+  --radius:10px;
+  --left-w:280px;
+}
+html,body{
+  height:100%;width:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+img{display:block;max-width:100%;}
+button{cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px;}
+
+/* ══════════════════════════════════════
+   LAYOUT PRINCIPAL — dois painéis fixos
+══════════════════════════════════════ */
+#app{
+  display:flex;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ══════════════════════════════════════
+   PAINEL ESQUERDO — lista de canais
+══════════════════════════════════════ */
+#left-panel{
+  width:var(--left-w);
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  overflow:hidden;
+}
+
+/* ── Logo topo ── */
+#left-header{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 14px 10px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+#logo{display:flex;align-items:center;gap:7px;text-decoration:none;}
+#logo svg{width:20px;height:20px;color:var(--red);}
+#logo-text{font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:.08em;color:#fff;}
+#logo-text b{color:var(--red);}
+
+/* ── Abas de categoria ── */
+#cat-tabs{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  padding:8px 8px 0;
+  overflow-y:auto;
+  max-height:36vh;
+  flex-shrink:0;
+  scrollbar-width:thin;
+}
+.cat-tab{
+  all:unset;
+  display:block;
+  width:100%;
+  padding:7px 10px;
+  border-radius:7px;
+  font-size:.78rem;font-weight:600;
+  color:var(--muted);
+  cursor:pointer;
+  transition:background .15s,color .15s;
+  touch-action:manipulation;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.cat-tab:hover,.cat-tab.active{
+  background:rgba(232,16,16,.15);
+  color:#fff;
+}
+.cat-tab.active{
+  background:rgba(232,16,16,.2);
+  color:var(--red);
+  font-weight:700;
+  border-left:2px solid var(--red);
+  padding-left:8px;
+}
+
+/* ── Divisor ── */
+.panel-divider{
+  height:1px;
+  background:var(--border);
+  margin:6px 8px;
+  flex-shrink:0;
+}
+
+/* ── Lista de canais ── */
+#channel-list{
+  flex:1;
+  overflow-y:auto;
+  padding:4px 0 12px;
+}
+.sb-cat{
+  padding:6px 14px 2px;
+  font-size:.58rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-top:6px;
+}
+.sb-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  text-align:left;
+  padding:8px 14px;
+  font-size:.8rem;
+  color:var(--text);
+  background:none;
+  border:none;
+  cursor:pointer;
+  transition:background .12s,color .12s;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  border-left:2px solid transparent;
+}
+.sb-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.sb-item.active{
+  background:rgba(232,16,16,.14);
+  color:#fff;
+  border-left:2px solid var(--red);
+  padding-left:12px;
+}
+.sb-item .sb-logo{
+  width:22px;height:22px;
+  border-radius:4px;
+  object-fit:contain;
+  background:rgba(255,255,255,.04);
+  flex-shrink:0;
+}
+.sb-item.hidden{display:none;}
+
+/* ══════════════════════════════════════
+   PAINEL DIREITO — player
+══════════════════════════════════════ */
+#right-panel{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  background:#000;
+  position:relative;
+  overflow:hidden;
+}
+
+/* ── Estado vazio ── */
+#player-empty{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:14px;
+  color:var(--muted);
+  user-select:none;
+  pointer-events:none;
+}
+#player-empty svg{width:56px;height:56px;color:rgba(232,16,16,.3);}
+#player-empty p{font-size:.9rem;font-family:'Oswald',sans-serif;letter-spacing:.06em;}
+#player-empty small{font-size:.7rem;color:rgba(255,255,255,.2);}
+#right-panel.has-player #player-empty{display:none;}
+
+/* ── Barra de controle do player — SEMPRE VISÍVEL no topo ── */
+#player-bar{
+  position:relative;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:6px 10px;
+  background:rgba(10,10,12,.97);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  flex-shrink:0;
+  min-height:44px;
+  pointer-events:none;
+}
+/* barra só aparece quando tem canal ativo */
+#right-panel:not(.has-player) #player-bar{ display:none; }
+
+#player-info{
+  display:flex;align-items:center;gap:8px;
+  pointer-events:none;
+  overflow:hidden;
+}
+#player-info-logo{
+  width:26px;height:26px;
+  border-radius:4px;
+  object-fit:contain;
+  background:rgba(255,255,255,.07);
+  flex-shrink:0;
+}
+#player-ch-name{
+  font-family:'Oswald',sans-serif;
+  font-size:.88rem;font-weight:700;
+  color:#fff;letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#player-brand{
+  display:flex;align-items:center;gap:4px;
+  opacity:.4;
+  pointer-events:none;
+  flex-shrink:0;
+}
+#player-brand svg{width:10px;height:10px;color:var(--red);}
+#player-brand span{
+  font-family:'Oswald',sans-serif;
+  font-size:.52rem;font-weight:700;
+  letter-spacing:.08em;color:#fff;
+}
+#player-brand span b{color:var(--red);}
+#player-btns{
+  display:flex;gap:5px;
+  pointer-events:all;
+  flex-shrink:0;
+}
+.pbar-btn{
+  all:unset;
+  display:flex;align-items:center;justify-content:center;
+  gap:5px;
+  height:30px;
+  padding:0 10px;
+  border-radius:6px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  color:#fff;
+  font-size:.7rem;font-weight:600;
+  cursor:pointer;
+  transition:background .15s,transform .1s,border-color .15s;
+  touch-action:manipulation;
+  white-space:nowrap;
+}
+.pbar-btn svg{flex-shrink:0;}
+.pbar-btn:hover,.pbar-btn:focus{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);}
+.pbar-btn:active{transform:scale(.93);}
+.pbar-btn.reload:hover{background:rgba(50,120,255,.6);}
+.pbar-btn.fullscreen-btn{background:rgba(160,120,0,.7);border-color:rgba(255,200,0,.3);color:#ffe566;}
+.pbar-btn.fullscreen-btn:hover{background:rgba(210,165,0,.9);}
+.pbar-btn.close-btn{background:rgba(160,0,0,.7);border-color:rgba(255,50,50,.25);}
+.pbar-btn.close-btn:hover{background:rgba(220,16,16,.9);}
+
+/* ── iframe do player ── */
+#player-frame{
+  display:block;
+  width:100%;
+  flex:1;
+  border:none;
+  background:#000;
+  min-height:0;
+}
+
+/* ══ MODO TELA CHEIA (esconde painel esquerdo) ══ */
+#app.fullscreen #left-panel{
+  display:none;
+}
+#app.fullscreen #right-panel{
+  width:100vw;
+}
+/* botão muda visual no modo fullscreen */
+#app.fullscreen .pbar-btn.fullscreen-btn{
+  background:rgba(100,80,0,.7);
+  color:#ffcc00;
+}
+
+/* ══════════════════════════════════════
+   TV / REMOTE CONTROL FOCUS
+══════════════════════════════════════ */
+:root{ --focus-color:#e81010; }
+*:focus{ outline:none; }
+
+.tv-focusable:focus,
+.tv-focusable.tv-focus {
+  outline: 3px solid var(--focus-color) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(232,16,16,.3), 0 0 14px rgba(232,16,16,.35) !important;
+  border-color: var(--focus-color) !important;
+  z-index: 10;
+  position: relative;
+}
+.sb-item.tv-focus {
+  background: rgba(232,16,16,.22) !important;
+  color: #fff !important;
+  border-left: 2px solid var(--red) !important;
+  outline: none !important;
+  box-shadow: inset 3px 0 0 var(--red) !important;
+}
+.cat-tab.tv-focus {
+  background: rgba(232,16,16,.25) !important;
+  color: #fff !important;
+  outline: 2px solid var(--red) !important;
+  outline-offset: 1px;
+}
+.pbar-btn.tv-focus {
+  background: rgba(232,16,16,.6) !important;
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 2px rgba(232,16,16,.4) !important;
+  outline: none !important;
+}
+body.tv-mode * { cursor: none !important; }
+
+/* Indicador modo TV */
+#tv-indicator {
+  position:fixed;bottom:10px;right:10px;z-index:9998;
+  background:rgba(232,16,16,.9);color:#fff;
+  font-size:.6rem;font-weight:700;letter-spacing:.08em;
+  padding:3px 8px;border-radius:5px;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+  font-family:'Oswald',sans-serif;
+}
+#tv-indicator.show{opacity:1;}
+
+
+</style>
+</head>
+<body>
+
+<!-- ══ TV INDICATOR ══ -->
+<div id="tv-indicator">📺 MODO TV</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+
+  <!-- ══ PAINEL ESQUERDO ══ -->
+  <div id="left-panel">
+    <div id="left-header">
+      <a id="logo" href="#" onclick="location.reload();return false;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+        <span id="logo-text"><b>ELVIS</b> IPTV</span>
+      </a>
+    </div>
+
+    <!-- Abas de categoria -->
+    <div id="cat-tabs"><button class="cat-tab active tv-focusable" data-cat="all" tabindex="0">Todos</button><button class="cat-tab tv-focusable" data-cat="bbb" tabindex="0">BBB 2026</button><button class="cat-tab tv-focusable" data-cat="esportes" tabindex="0">Esportes</button><button class="cat-tab tv-focusable" data-cat="infantil" tabindex="0">Infantil</button><button class="cat-tab tv-focusable" data-cat="docs" tabindex="0">Documentários</button><button class="cat-tab tv-focusable" data-cat="filmes" tabindex="0">Filmes e Séries</button><button class="cat-tab tv-focusable" data-cat="noticias" tabindex="0">Notícias</button><button class="cat-tab tv-focusable" data-cat="abertos" tabindex="0">Abertos</button><button class="cat-tab tv-focusable" data-cat="variedades" tabindex="0">Variedades</button></div>
+
+    <div class="panel-divider"></div>
+
+    <!-- Lista de canais filtrada -->
+    <div id="channel-list"><div class="sb-cat">BBB 2026</div><button class="sb-item tv-focusable tv-focus" data-ch="bbbmosaico" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - Mosaico</button><button class="sb-item tv-focusable" data-ch="bbb1" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 1</button><button class="sb-item tv-focusable" data-ch="bbb2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 2</button><button class="sb-item tv-focusable" data-ch="bbb3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 3</button><button class="sb-item tv-focusable" data-ch="bbb4" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 4</button><button class="sb-item tv-focusable" data-ch="bbb5" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 5</button><button class="sb-item tv-focusable" data-ch="bbb6" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 6</button><button class="sb-item tv-focusable" data-ch="bbb7" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 7</button><button class="sb-item tv-focusable" data-ch="bbb8" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 8</button><button class="sb-item tv-focusable" data-ch="bbb9" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bbb.png" alt="" onerror="this.style.display='none'" style="display: none;">BBB - 9</button><div class="sb-cat">Esportes</div><button class="sb-item tv-focusable" data-ch="bandsports" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bandsports.png" alt="" onerror="this.style.display='none'" style="display: none;">Band Sports</button><button class="sb-item tv-focusable" data-ch="caze1" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cazetv.png" alt="" onerror="this.style.display='none'" style="display: none;">CazeTV 1</button><button class="sb-item tv-focusable" data-ch="caze2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cazetv.png" alt="" onerror="this.style.display='none'" style="display: none;">CazeTV 2</button><button class="sb-item tv-focusable" data-ch="caze3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cazetv.png" alt="" onerror="this.style.display='none'" style="display: none;">CazeTV 3</button><button class="sb-item tv-focusable" data-ch="combate" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/combate.png" alt="" onerror="this.style.display='none'" style="display: none;">Combate</button><button class="sb-item tv-focusable" data-ch="disneyplus1" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/disneyplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Disney+ 1</button><button class="sb-item tv-focusable" data-ch="disneyplus2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/disneyplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Disney+ 2</button><button class="sb-item tv-focusable" data-ch="disneyplus3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/disneyplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Disney+ 3</button><button class="sb-item tv-focusable" data-ch="espn" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/espn.png" alt="" onerror="this.style.display='none'" style="display: none;">ESPN</button><button class="sb-item tv-focusable" data-ch="espn2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/espn2.png" alt="" onerror="this.style.display='none'" style="display: none;">ESPN 2</button><button class="sb-item tv-focusable" data-ch="espn3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/espn3.png" alt="" onerror="this.style.display='none'" style="display: none;">ESPN 3</button><button class="sb-item tv-focusable" data-ch="espn4" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/espn4.png" alt="" onerror="this.style.display='none'" style="display: none;">ESPN 4</button><button class="sb-item tv-focusable" data-ch="espn5" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/espn5.png" alt="" onerror="this.style.display='none'" style="display: none;">ESPN 5</button><button class="sb-item tv-focusable" data-ch="espn6" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/espn6.png" alt="" onerror="this.style.display='none'" style="display: none;">ESPN 6</button><button class="sb-item tv-focusable" data-ch="max1" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/max.png" alt="" onerror="this.style.display='none'" style="display: none;">Max 1</button><button class="sb-item tv-focusable" data-ch="max2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/max.png" alt="" onerror="this.style.display='none'" style="display: none;">Max 2</button><button class="sb-item tv-focusable" data-ch="max3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/max.png" alt="" onerror="this.style.display='none'" style="display: none;">Max 3</button><button class="sb-item tv-focusable" data-ch="paramountplus" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/paramountplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Paramount+</button><button class="sb-item tv-focusable" data-ch="paramountplus2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/paramountplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Paramount+ 2</button><button class="sb-item tv-focusable" data-ch="premiere" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 1</button><button class="sb-item tv-focusable" data-ch="premiere2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 2</button><button class="sb-item tv-focusable" data-ch="premiere3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 3</button><button class="sb-item tv-focusable" data-ch="premiere4" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 4</button><button class="sb-item tv-focusable" data-ch="premiere5" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 5</button><button class="sb-item tv-focusable" data-ch="premiere6" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 6</button><button class="sb-item tv-focusable" data-ch="premiere7" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 7</button><button class="sb-item tv-focusable" data-ch="premiere8" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/premiere.png" alt="" onerror="this.style.display='none'" style="display: none;">Premiere 8</button><button class="sb-item tv-focusable" data-ch="primevideo" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/primevideo.png" alt="" onerror="this.style.display='none'" style="display: none;">Prime Video</button><button class="sb-item tv-focusable" data-ch="primevideo2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/primevideo.png" alt="" onerror="this.style.display='none'" style="display: none;">Prime Video 2</button><button class="sb-item tv-focusable" data-ch="sportv" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv.png" alt="" onerror="this.style.display='none'" style="display: none;">SporTV</button><button class="sb-item tv-focusable" data-ch="sportv2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv2.png" alt="" onerror="this.style.display='none'" style="display: none;">SporTV 2</button><button class="sb-item tv-focusable" data-ch="sportv3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv3.png" alt="" onerror="this.style.display='none'" style="display: none;">SporTV 3</button><button class="sb-item tv-focusable" data-ch="sportv4" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv4.png" alt="" onerror="this.style.display='none'" style="display: none;">SporTV 4</button><button class="sb-item tv-focusable" data-ch="ufcfightpass" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/ufcfightpass.png" alt="" onerror="this.style.display='none'" style="display: none;">UFC Fight Pass</button><button class="sb-item tv-focusable" data-ch="pt_eleven1" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/eleven.png" alt="" onerror="this.style.display='none'" style="display: none;">PT Eleven 1</button><button class="sb-item tv-focusable" data-ch="pt_eleven2" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/eleven.png" alt="" onerror="this.style.display='none'" style="display: none;">PT Eleven 2</button><button class="sb-item tv-focusable" data-ch="pt_eleven3" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/eleven.png" alt="" onerror="this.style.display='none'" style="display: none;">PT Eleven 3</button><button class="sb-item tv-focusable" data-ch="pt_sportv1" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv.png" alt="" onerror="this.style.display='none'" style="display: none;">PT SporTV 1</button><button class="sb-item tv-focusable" data-ch="pt_sportv2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv.png" alt="" onerror="this.style.display='none'" style="display: none;">PT SporTV 2</button><button class="sb-item tv-focusable" data-ch="pt_sportv3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv.png" alt="" onerror="this.style.display='none'" style="display: none;">PT SporTV 3</button><button class="sb-item tv-focusable" data-ch="pt_sportv4" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv.png" alt="" onerror="this.style.display='none'" style="display: none;">PT SporTV 4</button><button class="sb-item tv-focusable" data-ch="pt_sportv5" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sportv.png" alt="" onerror="this.style.display='none'" style="display: none;">PT SporTV 5</button><button class="sb-item tv-focusable" data-ch="xsports" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/xsports.png" alt="" onerror="this.style.display='none'" style="display: none;">XSports</button><div class="sb-cat">Infantil</div><button class="sb-item tv-focusable" data-ch="24h_chaves" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Chaves</button><button class="sb-item tv-focusable" data-ch="24h_naruto" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Naruto</button><button class="sb-item tv-focusable" data-ch="24h_dragonball" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Dragon Ball Z</button><button class="sb-item tv-focusable" data-ch="24h_odeiachris" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Todo Mundo Odeia o Cris</button><button class="sb-item tv-focusable" data-ch="24h_simpsons" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Os Simpsons</button><button class="sb-item tv-focusable" data-ch="cartoonito" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cartoonito.png" alt="" onerror="this.style.display='none'" style="display: none;">Cartoonito</button><button class="sb-item tv-focusable" data-ch="cartoonnetwork" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cartoonnetwork.png" alt="" onerror="this.style.display='none'" style="display: none;">Cartoon Network</button><button class="sb-item tv-focusable" data-ch="discoverykids" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoverykids.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery Kids</button><button class="sb-item tv-focusable" data-ch="gloob" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/gloob.png" alt="" onerror="this.style.display='none'" style="display: none;">Gloob</button><button class="sb-item tv-focusable" data-ch="nickelodeon" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/nickelodeon.png" alt="" onerror="this.style.display='none'" style="display: none;">Nickelodeon</button><button class="sb-item tv-focusable" data-ch="nickjunior" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/nickjr.png" alt="" onerror="this.style.display='none'" style="display: none;">Nick Jr.</button><div class="sb-cat">Documentários</div><button class="sb-item tv-focusable" data-ch="animalplanet" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/animalplanet.png" alt="" onerror="this.style.display='none'" style="display: none;">Animal Planet</button><button class="sb-item tv-focusable" data-ch="discoverychannel" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoverychannel.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery Channel</button><button class="sb-item tv-focusable" data-ch="discoveryhh" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoveryhh.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery H&H</button><button class="sb-item tv-focusable" data-ch="discoveryid" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoverychannel.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery ID</button><button class="sb-item tv-focusable" data-ch="discoveryscience" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoveryscience.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery Science</button><button class="sb-item tv-focusable" data-ch="discoverytheather" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoverytheater.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery Theater</button><button class="sb-item tv-focusable" data-ch="discoveryturbo" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoveryturbo.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery Turbo</button><button class="sb-item tv-focusable" data-ch="discoveryword" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoveryworld.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery World</button><button class="sb-item tv-focusable" data-ch="fish" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/fishtv.png" alt="" onerror="this.style.display='none'" style="display: none;">Fish TV</button><button class="sb-item tv-focusable" data-ch="history" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/history.png" alt="" onerror="this.style.display='none'" style="display: none;">History</button><button class="sb-item tv-focusable" data-ch="history2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/history2.png" alt="" onerror="this.style.display='none'" style="display: none;">History 2</button><div class="sb-cat">Filmes e Séries</div><button class="sb-item tv-focusable" data-ch="adultswim" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/adultswim.png" alt="" onerror="this.style.display='none'" style="display: none;">Adult Swim</button><button class="sb-item tv-focusable" data-ch="ae" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/ae.png" alt="" onerror="this.style.display='none'" style="display: none;">AE</button><button class="sb-item tv-focusable" data-ch="axn" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/axn.png" alt="" onerror="this.style.display='none'" style="display: none;">AXN</button><button class="sb-item tv-focusable" data-ch="cinemax" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cinemax.png" alt="" onerror="this.style.display='none'" style="display: none;">Cinemax</button><button class="sb-item tv-focusable" data-ch="comedycentral" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/comedycentral.png" alt="" onerror="this.style.display='none'" style="display: none;">Comedy Central</button><button class="sb-item tv-focusable" data-ch="gnt" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/gnt.png" alt="" onerror="this.style.display='none'" style="display: none;">GNT</button><button class="sb-item tv-focusable" data-ch="hbo" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hbo.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO</button><button class="sb-item tv-focusable" data-ch="hbo2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hbo2.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO 2</button><button class="sb-item tv-focusable" data-ch="hbofamily" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hbofamily.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO Family</button><button class="sb-item tv-focusable" data-ch="hbomundi" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hbomundi.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO Mundi</button><button class="sb-item tv-focusable" data-ch="hboplus" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hboplus.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO Plus</button><button class="sb-item tv-focusable" data-ch="hbopop" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hbopop.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO POP</button><button class="sb-item tv-focusable" data-ch="hboxtreme" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hboxtreme.png" alt="" onerror="this.style.display='none'" style="display: none;">HBO Xtreme</button><button class="sb-item tv-focusable" data-ch="hgtv" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hgtv.png" alt="" onerror="this.style.display='none'" style="display: none;">HGTV</button><button class="sb-item tv-focusable" data-ch="megapix" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/megapix.png" alt="" onerror="this.style.display='none'" style="display: none;">Megapix</button><button class="sb-item tv-focusable" data-ch="off" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/off.png" alt="" onerror="this.style.display='none'" style="display: none;">OFF</button><button class="sb-item tv-focusable" data-ch="paramountchannel" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/paramountchannel.png" alt="" onerror="this.style.display='none'" style="display: none;">Paramount</button><button class="sb-item tv-focusable" data-ch="sonychannel" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sonychannel.png" alt="" onerror="this.style.display='none'" style="display: none;">Sony Channel</button><button class="sb-item tv-focusable" data-ch="space" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/space.png" alt="" onerror="this.style.display='none'" style="display: none;">Space</button><button class="sb-item tv-focusable" data-ch="starchannel" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/starchannel.png" alt="" onerror="this.style.display='none'" style="display: none;">Star Channel</button><button class="sb-item tv-focusable" data-ch="studiouniversal" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/studiouniversal.png" alt="" onerror="this.style.display='none'" style="display: none;">Studio Universal</button><button class="sb-item tv-focusable" data-ch="tcm" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/tcm.png" alt="" onerror="this.style.display='none'" style="display: none;">TCM</button><button class="sb-item tv-focusable" data-ch="telecineaction" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/telecineaction.png" alt="" onerror="this.style.display='none'" style="display: none;">Telecine Action</button><button class="sb-item tv-focusable" data-ch="telecinecult" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/telecinecult.png" alt="" onerror="this.style.display='none'" style="display: none;">Telecine Cult</button><button class="sb-item tv-focusable" data-ch="telecinefun" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/telecinefun.png" alt="" onerror="this.style.display='none'" style="display: none;">Telecine Fun</button><button class="sb-item tv-focusable" data-ch="telecinepipoca" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/telecinepipoca.png" alt="" onerror="this.style.display='none'" style="display: none;">Telecine Pipoca</button><div class="sb-cat">Notícias</div><button class="sb-item tv-focusable" data-ch="bandnews" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bandnews.png" alt="" onerror="this.style.display='none'" style="display: none;">Band News</button><button class="sb-item tv-focusable" data-ch="cnnbrasil" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cnnbrasil.png" alt="" onerror="this.style.display='none'" style="display: none;">CNN Brasil</button><button class="sb-item tv-focusable" data-ch="globonews" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globonews.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo News</button><div class="sb-cat">Abertos</div><button class="sb-item tv-focusable" data-ch="aparecida" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/tvaparecida.png" alt="" onerror="this.style.display='none'" style="display: none;">Aparecida</button><button class="sb-item tv-focusable" data-ch="band" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/band.png" alt="" onerror="this.style.display='none'" style="display: none;">Band</button><button class="sb-item tv-focusable" data-ch="bandnews" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bandnews.png" alt="" onerror="this.style.display='none'" style="display: none;">Band News</button><button class="sb-item tv-focusable" data-ch="bandsports" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/bandsports.png" alt="" onerror="this.style.display='none'" style="display: none;">Band Sports</button><button class="sb-item tv-focusable" data-ch="cancaonova" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cancaonova.png" alt="" onerror="this.style.display='none'" style="display: none;">Canção Nova</button><button class="sb-item tv-focusable" data-ch="cultura" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cultura.png" alt="" onerror="this.style.display='none'" style="display: none;">Cultura</button><button class="sb-item tv-focusable" data-ch="globonews" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globonews.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo News</button><button class="sb-item tv-focusable" data-ch="globorj" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globorj.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo RJ</button><button class="sb-item tv-focusable" data-ch="globosp" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globosp.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo SP</button><button class="sb-item tv-focusable" data-ch="globomg" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globosp.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo MG</button><button class="sb-item tv-focusable" data-ch="globoam" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globosp.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo AM</button><button class="sb-item tv-focusable" data-ch="globors" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/globosp.png" alt="" onerror="this.style.display='none'" style="display: none;">Globo RS</button><button class="sb-item tv-focusable" data-ch="mtv" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/mtv.png" alt="" onerror="this.style.display='none'" style="display: none;">MTV</button><button class="sb-item tv-focusable" data-ch="multishow" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/multishow.png" alt="" onerror="this.style.display='none'" style="display: none;">Multishow</button><button class="sb-item tv-focusable" data-ch="record" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/record.png" alt="" onerror="this.style.display='none'" style="display: none;">Record</button><button class="sb-item tv-focusable" data-ch="sbt" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sbt.png" alt="" onerror="this.style.display='none'" style="display: none;">SBT Central</button><button class="sb-item tv-focusable" data-ch="viva" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/viva.png" alt="" onerror="this.style.display='none'" style="display: none;">VIVA</button><div class="sb-cat">Variedades</div><button class="sb-item tv-focusable" data-ch="24h_chaves" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Chaves</button><button class="sb-item tv-focusable" data-ch="24h_naruto" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Naruto Clássico</button><button class="sb-item tv-focusable" data-ch="24h_dragonball" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Dragon Ball Z</button><button class="sb-item tv-focusable" data-ch="24h_odeiachris" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Todo Mundo Odeia o Cris</button><button class="sb-item tv-focusable" data-ch="24h_simpsons" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/24h.png" alt="" onerror="this.style.display='none'" style="display: none;">24H Os Simpsons</button><button class="sb-item tv-focusable" data-ch="adultswim" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/adultswim.png" alt="" onerror="this.style.display='none'" style="display: none;">Adult Swim</button><button class="sb-item tv-focusable" data-ch="aparecida" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/tvaparecida.png" alt="" onerror="this.style.display='none'" style="display: none;">Aparecida</button><button class="sb-item tv-focusable" data-ch="cancaonova" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cancaonova.png" alt="" onerror="this.style.display='none'" style="display: none;">Canção Nova</button><button class="sb-item tv-focusable" data-ch="cnnbrasil" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cnnbrasil.png" alt="" onerror="this.style.display='none'" style="display: none;">CNN Brasil</button><button class="sb-item tv-focusable" data-ch="cultura" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cultura.png" alt="" onerror="this.style.display='none'" style="display: none;">Cultura</button><button class="sb-item tv-focusable" data-ch="discoveryscience" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/discoveryscience.png" alt="" onerror="this.style.display='none'" style="display: none;">Discovery Science</button><button class="sb-item tv-focusable" data-ch="disneyplus1" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/disneyplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Disney+ 1</button><button class="sb-item tv-focusable" data-ch="disneyplus2" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/disneyplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Disney+ 2</button><button class="sb-item tv-focusable" data-ch="disneyplus3" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/disneyplus.png" alt="" onerror="this.style.display='none'" style="display: none;">Disney+ 3</button><button class="sb-item tv-focusable" data-ch="fish" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/fishtv.png" alt="" onerror="this.style.display='none'" style="display: none;">Fish TV</button><button class="sb-item tv-focusable" data-ch="foodnetwork" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/foodnetwork.png" alt="" onerror="this.style.display='none'" style="display: none;">Food Network</button><button class="sb-item tv-focusable" data-ch="hgtv" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/hgtv.png" alt="" onerror="this.style.display='none'" style="display: none;">HGTV</button><button class="sb-item tv-focusable" data-ch="masterchef" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/cheftv.png" alt="" onerror="this.style.display='none'" style="display: none;">Master Chef</button><button class="sb-item tv-focusable" data-ch="mtv" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/mtv.png" alt="" onerror="this.style.display='none'" style="display: none;">MTV</button><button class="sb-item tv-focusable" data-ch="multishow" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/multishow.png" alt="" onerror="this.style.display='none'" style="display: none;">Multishow</button><button class="sb-item tv-focusable" data-ch="playboy" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/playboy.png" alt="" onerror="this.style.display='none'" style="display: none;">Play Boy</button><button class="sb-item tv-focusable" data-ch="record" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/record.png" alt="" onerror="this.style.display='none'" style="display: none;">Record</button><button class="sb-item tv-focusable" data-ch="sbt" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/sbt.png" alt="" onerror="this.style.display='none'" style="display: none;">SBT Central</button><button class="sb-item tv-focusable" data-ch="sexyhot" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/Sexy.png" alt="" onerror="this.style.display='none'" style="display: none;">Sexy Hot</button><button class="sb-item tv-focusable" data-ch="viva" tabindex="0"><img class="sb-logo" src="../../embedtv.lat/assets/images/viva.png" alt="" onerror="this.style.display='none'" style="display: none;">VIVA</button><button class="sb-item tv-focusable" data-ch="xsports" tabindex="0"><img class="sb-logo" src="https://embedtv.best/assets/images/xsports.png" alt="" onerror="this.style.display='none'" style="display: none;">XSports</button></div>
+  </div>
+
+  <!-- ══ PAINEL DIREITO — PLAYER ══ -->
+  <div id="right-panel">
+
+    <!-- Estado vazio -->
+    <div id="player-empty">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+      <p>Escolha um canal</p>
+      <small>Use o menu à esquerda ou o controle remoto</small>
+    </div>
+
+    <!-- Barra flutuante de controle -->
+    <div id="player-bar">
+      <div id="player-info">
+        <img id="player-info-logo" src="" alt="" onerror="this.style.display='none'" style="display: none;">
+        <span id="player-ch-name"></span>
+      </div>
+      <div id="player-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+        <span><b>ELVIS</b> IPTV</span>
+      </div>
+      <div id="player-btns">
+        <button class="pbar-btn reload" title="Recarregar" onclick="reloadPlayer()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+          Recarregar
+        </button>
+        <button class="pbar-btn fullscreen-btn" title="Tela Cheia (tecla 0)" onclick="toggleFullscreen()">
+          <svg id="fs-icon-expand" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
+          <svg id="fs-icon-shrink" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M8 3v3a2 2 0 0 1-2 2H3"></path><path d="M21 8h-3a2 2 0 0 1-2-2V3"></path><path d="M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 21v-3a2 2 0 0 1 2-2h3"></path></svg>
+          <span id="fs-label">Tela Cheia</span>
+        </button>
+        <button class="pbar-btn close-btn" title="Fechar" onclick="closePlayer()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          Fechar
+        </button>
+      </div>
+    </div>
+
+    <!-- iframe -->
+    <iframe id="player-frame" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen="" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; camera; microphone; geolocation" scrolling="no">
+    </iframe>
+
+  </div>
+</div>
+
+
+
+<script>
+/* ════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════ */
+const BASE = 'https://www3.embedtv.best/';
+const IMG  = 'https://embedtv.best/assets/images/';
+
+const CATEGORIES = [
+  {
+    id:'bbb', label:'BBB 2026',
+    channels:[
+      {n:'BBB - Mosaico',ch:'bbbmosaico',img:'bbb.png'},
+      {n:'BBB - 1',ch:'bbb1',img:'bbb.png'},{n:'BBB - 2',ch:'bbb2',img:'bbb.png'},
+      {n:'BBB - 3',ch:'bbb3',img:'bbb.png'},{n:'BBB - 4',ch:'bbb4',img:'bbb.png'},
+      {n:'BBB - 5',ch:'bbb5',img:'bbb.png'},{n:'BBB - 6',ch:'bbb6',img:'bbb.png'},
+      {n:'BBB - 7',ch:'bbb7',img:'bbb.png'},{n:'BBB - 8',ch:'bbb8',img:'bbb.png'},
+      {n:'BBB - 9',ch:'bbb9',img:'bbb.png'},
+    ]
+  },
+  {
+    id:'esportes', label:'Esportes',
+    channels:[
+      {n:'Band Sports',ch:'bandsports',img:'bandsports.png'},
+      {n:'CazeTV 1',ch:'caze1',img:'cazetv.png'},{n:'CazeTV 2',ch:'caze2',img:'cazetv.png'},{n:'CazeTV 3',ch:'caze3',img:'cazetv.png'},
+      {n:'Combate',ch:'combate',img:'combate.png'},
+      {n:'Disney+ 1',ch:'disneyplus1',img:'disneyplus.png'},{n:'Disney+ 2',ch:'disneyplus2',img:'disneyplus.png'},{n:'Disney+ 3',ch:'disneyplus3',img:'disneyplus.png'},
+      {n:'ESPN',ch:'espn',img:'espn.png'},{n:'ESPN 2',ch:'espn2',img:'espn2.png'},{n:'ESPN 3',ch:'espn3',img:'espn3.png'},
+      {n:'ESPN 4',ch:'espn4',img:'espn4.png'},{n:'ESPN 5',ch:'espn5',img:'espn5.png'},{n:'ESPN 6',ch:'espn6',img:'espn6.png'},
+      {n:'Max 1',ch:'max1',img:'max.png'},{n:'Max 2',ch:'max2',img:'max.png'},{n:'Max 3',ch:'max3',img:'max.png'},
+      {n:'Paramount+',ch:'paramountplus',img:'paramountplus.png'},{n:'Paramount+ 2',ch:'paramountplus2',img:'paramountplus.png'},
+      {n:'Premiere 1',ch:'premiere',img:'premiere.png'},{n:'Premiere 2',ch:'premiere2',img:'premiere.png'},
+      {n:'Premiere 3',ch:'premiere3',img:'premiere.png'},{n:'Premiere 4',ch:'premiere4',img:'premiere.png'},
+      {n:'Premiere 5',ch:'premiere5',img:'premiere.png'},{n:'Premiere 6',ch:'premiere6',img:'premiere.png'},
+      {n:'Premiere 7',ch:'premiere7',img:'premiere.png'},{n:'Premiere 8',ch:'premiere8',img:'premiere.png'},
+      {n:'Prime Video',ch:'primevideo',img:'primevideo.png'},{n:'Prime Video 2',ch:'primevideo2',img:'primevideo.png'},
+      {n:'SporTV',ch:'sportv',img:'sportv.png'},{n:'SporTV 2',ch:'sportv2',img:'sportv2.png'},
+      {n:'SporTV 3',ch:'sportv3',img:'sportv3.png'},{n:'SporTV 4',ch:'sportv4',img:'sportv4.png'},
+      {n:'UFC Fight Pass',ch:'ufcfightpass',img:'ufcfightpass.png'},
+      {n:'PT Eleven 1',ch:'pt_eleven1',img:'eleven.png'},{n:'PT Eleven 2',ch:'pt_eleven2',img:'eleven.png'},{n:'PT Eleven 3',ch:'pt_eleven3',img:'eleven.png'},
+      {n:'PT SporTV 1',ch:'pt_sportv1',img:'sportv.png'},{n:'PT SporTV 2',ch:'pt_sportv2',img:'sportv.png'},
+      {n:'PT SporTV 3',ch:'pt_sportv3',img:'sportv.png'},{n:'PT SporTV 4',ch:'pt_sportv4',img:'sportv.png'},{n:'PT SporTV 5',ch:'pt_sportv5',img:'sportv.png'},
+      {n:'XSports',ch:'xsports',img:'xsports.png'},
+    ]
+  },
+  {
+    id:'infantil', label:'Infantil',
+    channels:[
+      {n:'24H Chaves',ch:'24h_chaves',img:'24h.png'},{n:'24H Naruto',ch:'24h_naruto',img:'24h.png'},
+      {n:'24H Dragon Ball Z',ch:'24h_dragonball',img:'24h.png'},{n:'24H Todo Mundo Odeia o Cris',ch:'24h_odeiachris',img:'24h.png'},
+      {n:'24H Os Simpsons',ch:'24h_simpsons',img:'24h.png'},
+      {n:'Cartoonito',ch:'cartoonito',img:'cartoonito.png'},{n:'Cartoon Network',ch:'cartoonnetwork',img:'cartoonnetwork.png'},
+      {n:'Discovery Kids',ch:'discoverykids',img:'discoverykids.png'},{n:'Gloob',ch:'gloob',img:'gloob.png'},
+      {n:'Nickelodeon',ch:'nickelodeon',img:'nickelodeon.png'},{n:'Nick Jr.',ch:'nickjunior',img:'nickjr.png'},
+    ]
+  },
+  {
+    id:'docs', label:'Documentários',
+    channels:[
+      {n:'Animal Planet',ch:'animalplanet',img:'animalplanet.png'},
+      {n:'Discovery Channel',ch:'discoverychannel',img:'discoverychannel.png'},
+      {n:'Discovery H&H',ch:'discoveryhh',img:'discoveryhh.png'},
+      {n:'Discovery ID',ch:'discoveryid',img:'discoverychannel.png'},
+      {n:'Discovery Science',ch:'discoveryscience',img:'discoveryscience.png'},
+      {n:'Discovery Theater',ch:'discoverytheather',img:'discoverytheater.png'},
+      {n:'Discovery Turbo',ch:'discoveryturbo',img:'discoveryturbo.png'},
+      {n:'Discovery World',ch:'discoveryword',img:'discoveryworld.png'},
+      {n:'Fish TV',ch:'fish',img:'fishtv.png'},
+      {n:'History',ch:'history',img:'history.png'},{n:'History 2',ch:'history2',img:'history2.png'},
+    ]
+  },
+  {
+    id:'filmes', label:'Filmes e Séries',
+    channels:[
+      {n:'Adult Swim',ch:'adultswim',img:'adultswim.png'},{n:'AE',ch:'ae',img:'ae.png'},
+      {n:'AXN',ch:'axn',img:'axn.png'},{n:'Cinemax',ch:'cinemax',img:'cinemax.png'},
+      {n:'Comedy Central',ch:'comedycentral',img:'comedycentral.png'},{n:'GNT',ch:'gnt',img:'gnt.png'},
+      {n:'HBO',ch:'hbo',img:'hbo.png'},{n:'HBO 2',ch:'hbo2',img:'hbo2.png'},
+      {n:'HBO Family',ch:'hbofamily',img:'hbofamily.png'},{n:'HBO Mundi',ch:'hbomundi',img:'hbomundi.png'},
+      {n:'HBO Plus',ch:'hboplus',img:'hboplus.png'},{n:'HBO POP',ch:'hbopop',img:'hbopop.png'},
+      {n:'HBO Xtreme',ch:'hboxtreme',img:'hboxtreme.png'},{n:'HGTV',ch:'hgtv',img:'hgtv.png'},
+      {n:'Megapix',ch:'megapix',img:'megapix.png'},{n:'OFF',ch:'off',img:'off.png'},
+      {n:'Paramount',ch:'paramountchannel',img:'paramountchannel.png'},
+      {n:'Sony Channel',ch:'sonychannel',img:'sonychannel.png'},{n:'Space',ch:'space',img:'space.png'},
+      {n:'Star Channel',ch:'starchannel',img:'starchannel.png'},
+      {n:'Studio Universal',ch:'studiouniversal',img:'studiouniversal.png'},
+      {n:'TCM',ch:'tcm',img:'tcm.png'},
+      {n:'Telecine Action',ch:'telecineaction',img:'telecineaction.png'},
+      {n:'Telecine Cult',ch:'telecinecult',img:'telecinecult.png'},
+      {n:'Telecine Fun',ch:'telecinefun',img:'telecinefun.png'},
+      {n:'Telecine Pipoca',ch:'telecinepipoca',img:'telecinepipoca.png'},
+    ]
+  },
+  {
+    id:'noticias', label:'Notícias',
+    channels:[
+      {n:'Band News',ch:'bandnews',img:'bandnews.png'},{n:'CNN Brasil',ch:'cnnbrasil',img:'cnnbrasil.png'},
+      {n:'Globo News',ch:'globonews',img:'globonews.png'},
+    ]
+  },
+  {
+    id:'abertos', label:'Abertos',
+    channels:[
+      {n:'Aparecida',ch:'aparecida',img:'tvaparecida.png'},{n:'Band',ch:'band',img:'band.png'},
+      {n:'Band News',ch:'bandnews',img:'bandnews.png'},{n:'Band Sports',ch:'bandsports',img:'bandsports.png'},
+      {n:'Canção Nova',ch:'cancaonova',img:'cancaonova.png'},{n:'Cultura',ch:'cultura',img:'cultura.png'},
+      {n:'Globo News',ch:'globonews',img:'globonews.png'},{n:'Globo RJ',ch:'globorj',img:'globorj.png'},
+      {n:'Globo SP',ch:'globosp',img:'globosp.png'},{n:'Globo MG',ch:'globomg',img:'globosp.png'},
+      {n:'Globo AM',ch:'globoam',img:'globosp.png'},{n:'Globo RS',ch:'globors',img:'globosp.png'},
+      {n:'MTV',ch:'mtv',img:'mtv.png'},{n:'Multishow',ch:'multishow',img:'multishow.png'},
+      {n:'Record',ch:'record',img:'record.png'},{n:'SBT Central',ch:'sbt',img:'sbt.png'},
+      {n:'VIVA',ch:'viva',img:'viva.png'},
+    ]
+  },
+  {
+    id:'variedades', label:'Variedades',
+    channels:[
+      {n:'24H Chaves',ch:'24h_chaves',img:'24h.png'},{n:'24H Naruto Clássico',ch:'24h_naruto',img:'24h.png'},
+      {n:'24H Dragon Ball Z',ch:'24h_dragonball',img:'24h.png'},{n:'24H Todo Mundo Odeia o Cris',ch:'24h_odeiachris',img:'24h.png'},
+      {n:'24H Os Simpsons',ch:'24h_simpsons',img:'24h.png'},
+      {n:'Adult Swim',ch:'adultswim',img:'adultswim.png'},{n:'Aparecida',ch:'aparecida',img:'tvaparecida.png'},
+      {n:'Canção Nova',ch:'cancaonova',img:'cancaonova.png'},{n:'CNN Brasil',ch:'cnnbrasil',img:'cnnbrasil.png'},
+      {n:'Cultura',ch:'cultura',img:'cultura.png'},{n:'Discovery Science',ch:'discoveryscience',img:'discoveryscience.png'},
+      {n:'Disney+ 1',ch:'disneyplus1',img:'disneyplus.png'},{n:'Disney+ 2',ch:'disneyplus2',img:'disneyplus.png'},
+      {n:'Disney+ 3',ch:'disneyplus3',img:'disneyplus.png'},{n:'Fish TV',ch:'fish',img:'fishtv.png'},
+      {n:'Food Network',ch:'foodnetwork',img:'foodnetwork.png'},{n:'HGTV',ch:'hgtv',img:'hgtv.png'},
+      {n:'Master Chef',ch:'masterchef',img:'cheftv.png'},{n:'MTV',ch:'mtv',img:'mtv.png'},
+      {n:'Multishow',ch:'multishow',img:'multishow.png'},{n:'Play Boy',ch:'playboy',img:'playboy.png'},
+      {n:'Record',ch:'record',img:'record.png'},{n:'SBT Central',ch:'sbt',img:'sbt.png'},
+      {n:'Sexy Hot',ch:'sexyhot',img:'Sexy.png'},{n:'VIVA',ch:'viva',img:'viva.png'},
+      {n:'XSports',ch:'xsports',img:'xsports.png'},
+    ]
+  },
+];
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+var currentCh   = null;
+var currentImg  = '';
+var activeCat   = 'all';
+
+/* ════════════════════════════════════════════
+   BUILD UI
+════════════════════════════════════════════ */
+function buildUI(){
+  var tabs = document.getElementById('cat-tabs');
+  tabs.innerHTML = '';
+
+  /* Tab "Todos" */
+  var allTab = document.createElement('button');
+  allTab.className = 'cat-tab active tv-focusable';
+  allTab.textContent = 'Todos';
+  allTab.dataset.cat = 'all';
+  allTab.setAttribute('tabindex','0');
+  allTab.onclick = function(){ filterCat('all', this); };
+  tabs.appendChild(allTab);
+
+  CATEGORIES.forEach(function(cat){
+    var tab = document.createElement('button');
+    tab.className = 'cat-tab tv-focusable';
+    tab.textContent = cat.label;
+    tab.dataset.cat = cat.id;
+    tab.setAttribute('tabindex','0');
+    tab.onclick = function(){ filterCat(cat.id, this); };
+    tabs.appendChild(tab);
+  });
+
+  renderChannels('all');
+}
+
+/* ── Renderiza lista de canais conforme filtro ── */
+function renderChannels(catId){
+  var list = document.getElementById('channel-list');
+  list.innerHTML = '';
+
+  CATEGORIES.forEach(function(cat){
+    if(catId !== 'all' && cat.id !== catId) return;
+
+    if(catId === 'all'){
+      var lbl = document.createElement('div');
+      lbl.className = 'sb-cat';
+      lbl.textContent = cat.label;
+      list.appendChild(lbl);
+    }
+
+    cat.channels.forEach(function(ch){
+      var btn = document.createElement('button');
+      btn.className = 'sb-item tv-focusable';
+      btn.dataset.ch = ch.ch;
+      btn.setAttribute('tabindex','0');
+      btn.innerHTML = '<img class="sb-logo" src="' + IMG + ch.img + '" alt="" onerror="this.style.display=\'none\'">' + ch.n;
+      btn.onclick = function(){ openChannel(ch.ch, ch.n, ch.img); };
+      if(ch.ch === currentCh) btn.classList.add('active');
+      list.appendChild(btn);
+    });
+  });
+}
+
+/* ════════════════════════════════════════════
+   FILTER
+════════════════════════════════════════════ */
+function filterCat(catId, el){
+  activeCat = catId;
+  document.querySelectorAll('.cat-tab').forEach(function(t){ t.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  renderChannels(catId);
+  /* scroll topo da lista */
+  document.getElementById('channel-list').scrollTop = 0;
+  /* foco primeiro item */
+  setTimeout(function(){
+    var first = document.querySelector('#channel-list .sb-item');
+    if(first){ applyFocus('list', 0); }
+  }, 40);
+}
+
+/* ════════════════════════════════════════════
+   CHANNEL OPEN / CLOSE
+════════════════════════════════════════════ */
+function openChannel(ch, name, img){
+  currentCh  = ch;
+  currentImg = img || '';
+
+  document.querySelectorAll('.sb-item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.ch === ch);
+  });
+
+  /* Player */
+  document.getElementById('player-frame').src = BASE + ch;
+  document.getElementById('right-panel').classList.add('has-player');
+
+  /* Info no topo */
+  var logo = document.getElementById('player-info-logo');
+  logo.src = IMG + (img || '');
+  logo.style.display = img ? '' : 'none';
+  document.getElementById('player-ch-name').textContent = name || '';
+}
+
+function reloadPlayer(){
+  var f = document.getElementById('player-frame');
+  if(f.src) f.src = f.src;
+}
+
+function closePlayer(){
+  document.getElementById('right-panel').classList.remove('has-player');
+  document.getElementById('player-frame').src = '';
+  currentCh = null;
+  document.querySelectorAll('.sb-item').forEach(function(el){ el.classList.remove('active'); });
+  if(isFullscreen) toggleFullscreen();
+}
+
+var isFullscreen = false;
+
+function toggleFullscreen(){
+  isFullscreen = !isFullscreen;
+  document.getElementById('app').classList.toggle('fullscreen', isFullscreen);
+  document.getElementById('fs-icon-expand').style.display = isFullscreen ? 'none' : '';
+  document.getElementById('fs-icon-shrink').style.display = isFullscreen ? '' : 'none';
+  document.getElementById('fs-label').textContent = isFullscreen ? 'Sair' : 'Tela Cheia';
+}
+
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+buildUI();
+
+setTimeout(function(){ applyFocus('list', 0); }, 200);
+
+/* ════════════════════════════════════════════
+   TV BOX / REMOTE CONTROL NAVIGATION
+════════════════════════════════════════════ */
+(function(){
+
+  /* Zonas: 'cats' = abas categoria, 'list' = canal, 'player' = botões player */
+  var tvMode     = false;
+  var focusZone  = 'list';
+  var focusIndex = 0;
+  var indicatorTmr;
+
+  function getItems(zone){
+    if(zone === 'cats')   return Array.from(document.querySelectorAll('#cat-tabs .cat-tab')).filter(function(e){ return e.offsetParent !== null; });
+    if(zone === 'list')   return Array.from(document.querySelectorAll('#channel-list .sb-item')).filter(function(e){ return e.offsetParent !== null; });
+    if(zone === 'player') return Array.from(document.querySelectorAll('#player-bar .pbar-btn')).filter(function(e){ return e.offsetParent !== null; });
+    return [];
+  }
+
+  window.applyFocus = function(zone, idx){
+    document.querySelectorAll('.tv-focus').forEach(function(el){ el.classList.remove('tv-focus'); });
+    var items = getItems(zone);
+    if(!items.length) return;
+    if(idx < 0) idx = 0;
+    if(idx >= items.length) idx = items.length - 1;
+    focusZone  = zone;
+    focusIndex = idx;
+    var el = items[idx];
+    el.classList.add('tv-focus');
+    el.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'nearest' });
+  };
+
+  function activateTV(){
+    if(!tvMode){
+      tvMode = true;
+      document.body.classList.add('tv-mode');
+    }
+    var ind = document.getElementById('tv-indicator');
+    ind.classList.add('show');
+    clearTimeout(indicatorTmr);
+    indicatorTmr = setTimeout(function(){ ind.classList.remove('show'); }, 2000);
+  }
+
+  function detectZone(){
+    return focusZone;
+  }
+
+  document.addEventListener('keydown', function(e){
+    var key = e.key || e.keyCode;
+
+    /* Keycodes Android TV */
+    var km = {37:'ArrowLeft',38:'ArrowUp',39:'ArrowRight',40:'ArrowDown',13:'Enter',8:'Backspace',27:'Escape',
+              403:'ColorRed',404:'ColorGreen',405:'ColorYellow',406:'ColorBlue',
+              415:'MediaPlay',19:'MediaPause',413:'MediaStop',33:'PageUp',34:'PageDown',
+              427:'ChannelUp',428:'ChannelDown',
+              48:'0', 96:'0'};
+    if(typeof key === 'number' && km[key]) key = km[key];
+
+    var navKeys = ['ArrowLeft','ArrowUp','ArrowRight','ArrowDown','Enter','Backspace','Escape',
+                   'ColorRed','ColorGreen','ColorYellow','ColorBlue','MediaPlay','MediaPause',
+                   'MediaStop','PageUp','PageDown','ChannelUp','ChannelDown'];
+    if(navKeys.indexOf(key) >= 0) activateTV();
+
+    var zone = detectZone();
+    if(zone !== focusZone){
+      applyFocus(zone, 0);
+    }
+
+    /* input de texto — só trata Enter */
+    var active = document.activeElement;
+    var inInput = active && (active.tagName === 'INPUT');
+    if(inInput){
+      return;
+    }
+
+    switch(key){
+
+      case 'ArrowUp':
+        e.preventDefault();
+        if(focusZone === 'list'){
+          if(focusIndex > 0){ applyFocus('list', focusIndex - 1); }
+          else { applyFocus('cats', 0); }
+        } else if(focusZone === 'cats'){
+          applyFocus('cats', focusIndex - 1);
+        } else if(focusZone === 'player'){
+          applyFocus('list', focusIndex);
+        }
+        break;
+
+      case 'ArrowDown':
+        e.preventDefault();
+        if(focusZone === 'list'){
+          applyFocus('list', focusIndex + 1);
+        } else if(focusZone === 'cats'){
+          var catItems = getItems('cats');
+          if(focusIndex < catItems.length - 1){ applyFocus('cats', focusIndex + 1); }
+          else { applyFocus('list', 0); }
+        }
+        break;
+
+      case 'ArrowLeft':
+        e.preventDefault();
+        if(focusZone === 'player'){
+          applyFocus('player', focusIndex - 1);
+        } else if(focusZone === 'cats'){
+          applyFocus('cats', focusIndex - 1);
+        }
+        /* list: sem ação para esquerda (já está no painel esquerdo) */
+        break;
+
+      case 'ArrowRight':
+        e.preventDefault();
+        if(focusZone === 'list' || focusZone === 'cats'){
+          if(document.getElementById('right-panel').classList.contains('has-player')){
+            applyFocus('player', 0);
+          }
+        } else if(focusZone === 'player'){
+          applyFocus('player', focusIndex + 1);
+        }
+        break;
+
+      case 'Enter': {
+        e.preventDefault();
+        var focused = document.querySelector('.tv-focus');
+        if(focused) focused.click();
+        break;
+      }
+
+      case 'Backspace':
+      case 'Escape':
+        e.preventDefault();
+        if(focusZone === 'player'){
+          applyFocus('list', focusIndex);
+        } else if(document.getElementById('right-panel').classList.contains('has-player')){
+          closePlayer();
+        } else {
+          applyFocus('list', 0);
+        }
+        break;
+
+      /* Tecla vermelha → fecha player */
+      case 'ColorRed':
+        e.preventDefault();
+        closePlayer();
+        applyFocus('list', focusIndex);
+        break;
+
+      /* Tecla verde → recarrega */
+      case 'ColorGreen':
+        e.preventDefault();
+        reloadPlayer();
+        break;
+
+      /* Tecla amarela ou 0 → fullscreen */
+      case 'ColorYellow':
+      case '0':
+      case 'Numpad0':
+        e.preventDefault();
+        if(document.getElementById('right-panel').classList.contains('has-player')){
+          toggleFullscreen();
+        }
+        break;
+
+      /* Tecla azul → vai para categorias */
+      case 'ColorBlue':
+        e.preventDefault();
+        applyFocus('cats', 0);
+        break;
+
+      /* PageUp/Down → pula 8 canais */
+      case 'PageUp':
+        e.preventDefault();
+        applyFocus('list', Math.max(0, focusIndex - 8));
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        applyFocus('list', focusIndex + 8);
+        break;
+
+      /* Canal +/- */
+      case 'ChannelUp':
+        e.preventDefault();
+        applyFocus('list', Math.max(0, focusIndex - 1));
+        break;
+      case 'ChannelDown':
+        e.preventDefault();
+        applyFocus('list', focusIndex + 1);
+        break;
+    }
+  }, true);
+
+  /* Mouse/ponteiro físico: desativa modo TV
+     TV Box usa pointermove, mousemove e às vezes touch */
+  var _mouseTimer;
+  function onRealPointer(){
+    clearTimeout(_mouseTimer);
+    /* pequeno delay para não desativar no primeiro frame de um clique do controle */
+    _mouseTimer = setTimeout(function(){
+      if(tvMode){
+        tvMode = false;
+        document.body.classList.remove('tv-mode');
+        document.querySelectorAll('.tv-focus').forEach(function(el){ el.classList.remove('tv-focus'); });
+      }
+    }, 80);
+  }
+  /* captura os três eventos que um mouse físico gera mas controle remoto NÃO gera */
+  document.addEventListener('mousemove',   onRealPointer);
+  document.addEventListener('pointermove', function(e){
+    /* ignora se vier de toque ou caneta — só mouse físico tem pointerType 'mouse' */
+    if(e.pointerType === 'mouse') onRealPointer();
+  });
+
+})();
+</script>
+
+
+</body></html>
